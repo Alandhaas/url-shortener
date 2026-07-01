@@ -4,6 +4,7 @@ import com.alandhaas.urlshortener.api.ShortenResponse;
 import com.alandhaas.urlshortener.config.UrlShortenerProperties;
 import com.alandhaas.urlshortener.domain.UrlMapping;
 import com.alandhaas.urlshortener.repository.UrlMappingRepository;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +39,12 @@ public class UrlShortenerService {
                 shortUrlFor(mapping.getShortCode()),
                 mapping.getLongUrl()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<String> findLongUrl(String shortCode) {
+        return repository.findByShortCode(shortCode)
+                .map(UrlMapping::getLongUrl);
     }
 
     private UrlMapping createMapping(String normalizedUrl) {

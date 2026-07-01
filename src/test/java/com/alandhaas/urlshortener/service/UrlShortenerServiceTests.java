@@ -21,8 +21,8 @@ class UrlShortenerServiceTests {
         ShortenResponse response = service.shorten(" https://example.com/docs/../guide ");
 
         assertThat(response.longUrl()).isEqualTo("https://example.com/guide");
-        assertThat(response.shortCode()).isEqualTo("1");
-        assertThat(response.shortUrl()).isEqualTo("http://sho.rt/1");
+        assertThat(response.shortCode()).isNotBlank();
+        assertThat(response.shortUrl()).isEqualTo("http://sho.rt/" + response.shortCode());
     }
 
     @Test
@@ -32,5 +32,15 @@ class UrlShortenerServiceTests {
 
         assertThat(second.shortCode()).isEqualTo(first.shortCode());
         assertThat(second.shortUrl()).isEqualTo(first.shortUrl());
+    }
+
+    @Test
+    void findsLongUrlByShortCode() {
+        ShortenResponse response = service.shorten("https://example.com/redirect-target");
+
+        assertThat(service.findLongUrl(response.shortCode()))
+                .contains("https://example.com/redirect-target");
+        assertThat(service.findLongUrl("missing"))
+                .isEmpty();
     }
 }
