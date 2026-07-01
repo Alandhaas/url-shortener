@@ -1,6 +1,7 @@
 package com.alandhaas.urlshortener.service;
 
 import com.alandhaas.urlshortener.api.ShortenResponse;
+import com.alandhaas.urlshortener.cache.RedirectCache;
 import com.alandhaas.urlshortener.config.UrlShortenerProperties;
 import com.alandhaas.urlshortener.domain.UrlMapping;
 import com.alandhaas.urlshortener.repository.UrlMappingRepository;
@@ -14,17 +15,20 @@ public class UrlShortenerService {
     private final UrlMappingRepository repository;
     private final Base62Encoder encoder;
     private final UrlValidator validator;
+    private final RedirectCache redirectCache;
     private final UrlShortenerProperties properties;
 
     public UrlShortenerService(
             UrlMappingRepository repository,
             Base62Encoder encoder,
             UrlValidator validator,
+            RedirectCache redirectCache,
             UrlShortenerProperties properties
     ) {
         this.repository = repository;
         this.encoder = encoder;
         this.validator = validator;
+        this.redirectCache = redirectCache;
         this.properties = properties;
     }
 
@@ -33,6 +37,7 @@ public class UrlShortenerService {
         String normalizedUrl = validator.validateAndNormalize(longUrl);
         UrlMapping mapping = repository.findByLongUrl(normalizedUrl)
                 .orElseGet(() -> createMapping(normalizedUrl));
+        redirectCache.put(mapping.getShortCode(), mapping.getLongUrl());
 
         return new ShortenResponse(
                 mapping.getShortCode(),
@@ -43,8 +48,12 @@ public class UrlShortenerService {
 
     @Transactional(readOnly = true)
     public Optional<String> findLongUrl(String shortCode) {
-        return repository.findByShortCode(shortCode)
-                .map(UrlMapping::getLongUrl);
+        return redirectCache.get(shortCode)
+                .or(() -> repository.findByShortCode(shortCode)
+                        .map(mapping -> {
+                            redirectCache.put(mapping.getShortCode(), mapping.getLongUrl());
+                            return mapping.getLongUrl();
+                        }));
     }
 
     private UrlMapping createMapping(String normalizedUrl) {

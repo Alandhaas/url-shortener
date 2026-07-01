@@ -1,9 +1,18 @@
 package com.alandhaas.urlshortener.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.alandhaas.urlshortener.api.ShortenResponse;
+import com.alandhaas.urlshortener.cache.RedirectCache;
+import com.alandhaas.urlshortener.config.UrlShortenerProperties;
+import com.alandhaas.urlshortener.domain.UrlMapping;
+import com.alandhaas.urlshortener.repository.UrlMappingRepository;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -42,5 +51,26 @@ class UrlShortenerServiceTests {
                 .contains("https://example.com/redirect-target");
         assertThat(service.findLongUrl("missing"))
                 .isEmpty();
+    }
+
+    @Test
+    void cachesRedirectLookupAfterDatabaseHit() {
+        UrlMappingRepository repository = Mockito.mock(UrlMappingRepository.class);
+        UrlMapping mapping = new UrlMapping("https://example.com/cached");
+        mapping.setShortCode("abc");
+        when(repository.findByShortCode("abc")).thenReturn(Optional.of(mapping));
+
+        UrlShortenerService cachedService = new UrlShortenerService(
+                repository,
+                new Base62Encoder(),
+                new UrlValidator(),
+                new RedirectCache(new UrlShortenerProperties()),
+                new UrlShortenerProperties()
+        );
+
+        assertThat(cachedService.findLongUrl("abc")).contains("https://example.com/cached");
+        assertThat(cachedService.findLongUrl("abc")).contains("https://example.com/cached");
+
+        verify(repository, times(1)).findByShortCode("abc");
     }
 }
