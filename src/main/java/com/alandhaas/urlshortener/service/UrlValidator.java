@@ -23,7 +23,7 @@ public class UrlValidator {
         String scheme = uri.getScheme();
 
         if (scheme == null || uri.getHost() == null) {
-            throw new InvalidUrlException("URL must include a scheme and host");
+            throw new InvalidUrlException("URL must include a scheme and domain");
         }
 
         if (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https")) {

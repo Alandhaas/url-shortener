@@ -35,6 +35,6 @@ class UrlValidatorTests {
     void rejectsUrlsWithoutHost() {
         assertThatThrownBy(() -> validator.validateAndNormalize("https:///missing-host"))
                 .isInstanceOf(InvalidUrlException.class)
-                .hasMessage("URL must include a scheme and host");
+                .hasMessage("URL must include a scheme and domain");
     }
 }
